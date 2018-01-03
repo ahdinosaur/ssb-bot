@@ -1,6 +1,6 @@
 const pull = require('pull-stream')
 const FlumeviewReduce = require('flumeview-reduce')
-const series = require('run-series')
+const pullThrough = require('pull-through')
 
 module.exports = {
   name: 'bot',
@@ -9,9 +9,7 @@ module.exports = {
   init
 }
 
-const version = 13
-
-const botKey = 'GWMbWihPXDMJpSgaduGr'
+const version = 1
 
 function hasMentionFor (id) {
   return (message) => {
@@ -29,66 +27,71 @@ function init (sbot) {
   const hasMentionForBot = hasMentionFor(id)
   
   function update (state, message) {
-    console.log('update', message)
+    // console.log('update', message)
 
     if (state == null) {
       state = {}
     }
 
-    var actions = []
+    var action = null
 
     if (hasMentionForBot(message)) {
-      console.log('HELLLLLLLOOOOOO')
-      console.log('HELLLLLLLOOOOOO')
-      console.log('HELLLLLLLOOOOOO')
-      console.log('HELLLLLLLOOOOOO')
-      actions = [
-        {
-          type: 'hello'
-        }
-      ]
+      action = {
+        type: 'hello',
+        id: message.value.author
+      }
     }
 
-    return { state, actions }
+    return { state, action }
   }
 
   function run (action, sbot, cb) {
-    console.log('run', action)
-    if (action.type === 'hello') {
-      console.log('hello!')
+    const { type } = action
+    if (type === 'hello') {
+      const { id } = action
+      sbot.about.get((err, abouts) => {
+        if (err) return cb(err)
+        const name = abouts[id].name[id][0]
+        cb(null, {
+          type: 'post',
+          text: `hello [@${name}](${id})!`,
+          mentions: [
+            {
+              name,
+              link: id
+            }
+          ]
+        })
+      })
     }
-    cb()
+    else cb()
   }
 
   function reduce (index, data) {
-    console.log('reduce', index, data)
-    const { message, state, actions } = data
+    // console.log('reduce', index, data)
+    const { message, state, action } = data
     const { key, value } = message
-    const { author } = value
-    const bot = value[botKey]
+    const { author, content } = value
     // if message from bot self
     if (author === id) {
-      // if message is from action
-      if (bot) {
-        const [ botMessageId, botActionIndex ] = bot
-        if (index.actions[botMessageId][botActionIndex] !== null) {
-          index.actions[botMessageId][botActionIndex] = null
+      const { branch: inReplyToId } = content
+      // if message is reply to
+      if (inReplyToId) {
+        if (index.actions[inReplyToId] !== undefined) {
+          delete index.actions[inReplyToId]
         }
       }
     }
     // if message from somebody else
     else {
       index.state = data.state
-      if (Array.isArray(data.actions) && data.actions.length > 0) {
-        console.log('i got actions', actions)
-        index.actions[data.message.key] = data.actions
-      }
+      if (action != null) index.actions[key] = action
     }
     return index
   }
 
   function map (message) {
-    console.log('map', message)
+    // console.log('map', message)
     if (typeof message.value.content === 'string') {
       message = sbot.private.unbox(message) || message
     }
@@ -97,11 +100,11 @@ function init (sbot) {
     // if message not from bot, 
     const value = index.value.value
     const state = (value == null) ? null : value.state
-    const { state: nextState, actions } = update(state, message)
+    const { state: nextState, action } = update(state, message)
     return {
       message,
       state: nextState,
-      actions
+      action
     }
   }
   
@@ -124,46 +127,47 @@ function init (sbot) {
     index.stream({
       live: true
     }),
-    pull.asyncMap(function (data, cb) {
+    pullThrough(function (data) {
       const { actions } = data
       if (actions) {
-        series(
-          Object.keys(actions).map(messageId => {
-            const messageActions = actions[messageId]
-            if (Array.isArray(messageActions) && messageActions.length > 0) {
-              return cb => series(
-                messageActions.map(action => cb => run(action, sbot, cb)),
-                cb
-              )
-            }
-            else return cb => cb()
-          }),
-          cb
-        )
+        Object.keys(actions).forEach(messageId => {
+          const action = actions[messageId]
+          this.queue({ messageId, action })
+        })
       }
+    }),
+    pull.asyncMap(function ({ messageId, action }, cb) {
+      run(action, sbot, (err, content) => {
+        if (err) return cb(err)
+        sbot.get(messageId, (err, inReplyTo) => {
+          if (err) return cb(err)
+          content.root = inReplyTo.content.root || messageId
+          content.branch = messageId
+
+          cb(null, content)
+        })
+      })
+    }),
+    pull.asyncMap(function (content, cb) {
+      console.log('publishing!', content)
+      return cb()
+      sbot.publish(content, cb)
     }),
     pull.onEnd(err => {
       if (err) throw err
     })
   )
+
+  pull(
+    sbot.createUserStream({ id }),
+    pull.log()
+  )
   
-  /*
   sbot.replicate.request(
     '@6ilZq3kN0F+dXFHAPjAwMm87JEb/VdB+LC9eIMW3sa0=.ed25519',
     (err) => {
       if (err) throw err
       console.log('done replicate.request')
-
-      pull(
-        sbot.private.read(),
-        pull.drain(message => {
-          console.log('private', message)
-        }, (err) => {
-          if (err) throw err
-          console.log('done private.read')
-        })
-      )
     }
   )
-  */
 }
