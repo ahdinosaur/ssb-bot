@@ -45,6 +45,7 @@
   },
   "dependencies": {
     "es2040": "^1.2.3",
-    "pull-stream": "^3.6.1"
+    "pull-stream": "^3.6.1",
+    "run-series": "^1.1.4"
   }
 }

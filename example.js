@@ -24,7 +24,7 @@ var config = ssbConfig(appName, {
   path: Path.join(__dirname, 'ssb'),
   port: 9999,
   seeds: [
-  //  'net:localhost:8008~shs:6ilZq3kN0F+dXFHAPjAwMm87JEb/VdB+LC9eIMW3sa0=',
+    'net:localhost:8008~shs:6ilZq3kN0F+dXFHAPjAwMm87JEb/VdB+LC9eIMW3sa0=',
   //  'net:ssb.mikey.nz:8008~shs:d64Q93XzBhbr2JCLWkZgvzKwTHMvwFgRdtw4fHFlF5k='
   ]
 })
