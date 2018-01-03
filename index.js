@@ -63,9 +63,9 @@ function Bot (options) {
       // if message not from bot, 
       var value = index.value.value
       var state = (value == null) ? null : value.state
-      console.log('handle message!', message)
+      // console.log('handle message!', message)
       var { state: nextState, action } = handleMessage(state, message)
-      console.log('action?', action)
+      // console.log('action?', action)
       return {
         message,
         state: nextState,
@@ -102,7 +102,7 @@ function Bot (options) {
         }
       }),
       pull.asyncMap(function ({ messageId, action }, cb) {
-        console.log('handle action!', action)
+        // console.log('handle action!', action)
         handleAction(action, sbot, (err, content) => {
           if (err) return cb(err)
           sbot.get(messageId, (err, inReplyTo) => {
@@ -110,7 +110,7 @@ function Bot (options) {
             if (typeof inReplyTo.content === 'string') {
               inReplyTo.content = sbot.private.unbox(inReplyTo.content) || inReplyTo.content
             }
-            console.log('in reply to', inReplyTo)
+            // console.log('in reply to', inReplyTo)
             content.root = inReplyTo.content.root || messageId
             content.branch = messageId
 
@@ -123,7 +123,7 @@ function Bot (options) {
         })
       }),
       pull.asyncMap(function (content, cb) {
-        console.log('publishing!', content)
+        // console.log('publishing!', content)
         if (content.recps) sbot.private.publish(content, content.recps, cb)
         else sbot.publish(content, cb)
       }),

@@ -1,12 +1,75 @@
 # ssb-bot :computer: :speech_balloon:
 
-_work in progress_
-
-[%2JaltAdhcWnJwOXJPbHvGE9+SlVrR7Vfq+RhJbMhVUM=.sha256](https://viewer.scuttlebot.io/%252JaltAdhcWnJwOXJPbHvGE9%2BSlVrR7Vfq%2BRhJbMhVUM%3D.sha256)
-
+```shell
+npm install --save ssb-bot
+```
 ## what?
 
+original post: [%2JaltAdhcWnJwOXJPbHvGE9+SlVrR7Vfq+RhJbMhVUM=.sha256](https://viewer.scuttlebot.io/%252JaltAdhcWnJwOXJPbHvGE9%2BSlVrR7Vfq%2BRhJbMhVUM%3D.sha256)
+
 `ssb-bot` is [scuttlebot](https://github.com/ssbc/scuttlebot) plugin to help make it easy to develop conversational user interfaces, similar to a Slack bot or a Facebook Messenger bot.
+
+## example
+
+```js
+var bot = Bot({
+  name: 'greeter',
+  version: '0.0.0',
+  initBot: (sbot) => {
+    var { id } = sbot.whoami()
+    var hasMentionForBot = hasMentionFor(id)
+
+    return {
+      handleMessage,
+      handleAction
+    }
+
+    function handleMessage (state, message) {
+      if (hasMentionForBot(message)) {
+        return {
+          state,
+          action: {
+            type: 'hello',
+            id: message.value.author
+          }
+        }
+      }
+
+      return { state }
+    }
+
+    function handleAction (action, sbot, cb) {
+      var { type } = action
+      if (type === 'hello') {
+        var { id } = action
+        sbot.about.get((err, abouts) => {
+          if (err) return cb(err)
+          var name = abouts[id].name[id][0]
+          cb(null, {
+            type: 'post',
+            text: `hello [@${name}](${id})!`,
+            mentions: [
+              {
+                name,
+                link: id
+              }
+            ]
+          })
+        })
+      }
+      else cb()
+    }
+  }
+})
+```
+
+see [`example.js`](./example.js) for the full example source.
+
+with your main Scuttlebutt client (such as Patchwork) running, run `node example`, which should create a new bot who will request to replicate with your current feed.
+
+if you @mention this new bot, it should respond with hello ${name}!
+
+(you may need to restart the bot once or twice after sending a message)
 
 ## why?
 
@@ -18,20 +81,33 @@ so i'm interested in a conversational approach to creating invites. i want to be
 
 ## how?
 
-similar to [Elm](https://guide.elm-lang.org/) or [`inu`](https://github.com/ahdinosaur/inu): a bot is a function that receives the current state (from indexes) and the next message and returns the next state and any new messages to publish.
+inspired by [Elm](https://guide.elm-lang.org/) or [`inu`](https://github.com/ahdinosaur/inu):
 
----
+a bot is two functions:
 
-# TODO
+`handleMessage` receives the current state and the next message, returns the next state and any new actions.
 
-```shell
-npm install --save ssb-bot
+```js
+var handleMessage = (state, message) => {
+  return {
+    state: nextState,
+    action
+  }
+}
 ```
 
-## usage
+`handleAction` receives the new action and asyncronously returns (via the `callback`) a new message to publish.
 
-### `ssbBot = require('ssb-bot')`
 
+```js
+var handleAction = (action, sbot, callback) => {
+  var content = {
+    type: 'post',
+    text: 'did i hear something?'
+  }
+  cb(null, content)
+}
+```
 
 ## license
 

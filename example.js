@@ -1,6 +1,7 @@
 var fs = require('fs')
 var Path = require('path')
 var pull = require('pull-stream')
+var createClient = require('ssb-client')
 var ssbConfig = require('ssb-config/inject')
 var ssbKeys = require('ssb-keys')
 
@@ -10,7 +11,7 @@ var Bot = require('./')
 var bot = Bot({
   name: 'hello',
   version: '0.0.0',
-  flumeVersion: 2,
+  flumeVersion: 1,
   initBot: (sbot) => {
     var { id } = sbot.whoami()
     var hasMentionForBot = hasMentionFor(id)
@@ -84,39 +85,43 @@ var createServer = require('scuttlebot')
   .use(bot)
 
 var appName = 'ssb-bot'
+createClient(function (err, client) {
+  if (err) throw err
+  client.whoami((err, { id: uxerId }) => {
 
-var config = ssbConfig(appName, {
-  path: Path.join(__dirname, 'ssb'),
-  port: 9999,
-  seeds: [
-    'net:localhost:8008~shs:6ilZq3kN0F+dXFHAPjAwMm87JEb/VdB+LC9eIMW3sa0=',
-  //  'net:ssb.mikey.nz:8008~shs:d64Q93XzBhbr2JCLWkZgvzKwTHMvwFgRdtw4fHFlF5k='
-  ]
+    var config = ssbConfig(appName, {
+      path: Path.join(__dirname, 'ssb'),
+      port: 9999,
+      seeds: [
+        `net:localhost:8008~shs:${uxerId.split('@')[1].split('.')[0]}`,
+      ]
+    })
+
+    var keys = ssbKeys.loadOrCreateSync(
+      Path.join(config.path, 'secret')
+    )
+
+    config.keys = keys
+
+    var sbot = createServer(config)
+    var { id: botId } = sbot.whoami()
+
+    console.log('uxer id:', uxerId)
+    console.log('bot id:', botId)
+
+    sbot.replicate.request(
+      uxerId,
+      (err) => {
+        if (err) throw err
+      }
+    )
+
+    pull(
+      sbot.createUserStream({
+        id: botId,
+        live: true
+      }),
+      pull.log()
+    )
+  })
 })
-
-var keys = ssbKeys.loadOrCreateSync(
-  Path.join(config.path, 'secret')
-)
-
-config.keys = keys
-
-var sbot = createServer(config)
-var { id } = sbot.whoami()
-
-console.log('bot id:', id)
-
-sbot.replicate.request(
-  '@6ilZq3kN0F+dXFHAPjAwMm87JEb/VdB+LC9eIMW3sa0=.ed25519',
-  (err) => {
-    if (err) throw err
-    console.log('done replicate.request')
-  }
-)
-
-pull(
-  sbot.createUserStream({
-    id,
-    live: true
-  }),
-  pull.log()
-)
