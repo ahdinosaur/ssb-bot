@@ -107,8 +107,16 @@ function Bot (options) {
           if (err) return cb(err)
           sbot.get(messageId, (err, inReplyTo) => {
             if (err) return cb(err)
+            if (typeof inReplyTo.content === 'string') {
+              inReplyTo.content = sbot.private.unbox(inReplyTo.content) || inReplyTo.content
+            }
+            console.log('in reply to', inReplyTo)
             content.root = inReplyTo.content.root || messageId
             content.branch = messageId
+
+            if (inReplyTo.content.recps) {
+              content.recps = inReplyTo.content.recps
+            }
 
             cb(null, content)
           })
@@ -116,7 +124,8 @@ function Bot (options) {
       }),
       pull.asyncMap(function (content, cb) {
         console.log('publishing!', content)
-        sbot.publish(content, cb)
+        if (content.recps) sbot.private.publish(content, content.recps, cb)
+        else sbot.publish(content, cb)
       }),
       pull.onEnd(err => {
         if (err) throw err
