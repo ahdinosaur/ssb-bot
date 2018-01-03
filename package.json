@@ -1,6 +1,6 @@
 {
   "name": "ssb-bot",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "create conversational user interfaces (bots) on Scuttlebutt",
   "main": "index.js",
   "scripts": {
