@@ -111,10 +111,8 @@ function Bot (options) {
               inReplyTo.content = sbot.private.unbox(inReplyTo.content) || inReplyTo.content
             }
             // console.log('in reply to', inReplyTo)
-            if (content.type === 'post') {
-              content.root = inReplyTo.content.root || messageId
-              content.branch = messageId
-            }
+            content.root = inReplyTo.content.root || messageId
+            content.branch = messageId
 
             if (inReplyTo.content.recps) {
               content.recps = inReplyTo.content.recps
