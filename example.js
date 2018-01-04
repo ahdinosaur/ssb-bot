@@ -59,12 +59,14 @@ createClient(function (err, client) {
     console.log('uxer id:', uxerId)
     console.log('bot id:', botId)
 
-    sbot.replicate.request(
-      uxerId,
-      (err) => {
-        if (err) throw err
-      }
-    )
+    // follow your own uxer id!
+    sbot.publish({
+      type: 'contact',
+      contact: uxerId,
+      following: true
+    }, err => {
+      if (err) throw err
+    })
 
     pull(
       sbot.createUserStream({
