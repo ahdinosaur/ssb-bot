@@ -63,9 +63,9 @@ var bot = Bot({
 })
 ```
 
-see [`example.js`](./example.js) for the full example source.
+see [`example.js`](./example.js) and [`examples/hello.js`](./examples/hello.js) for the full example source.
 
-with your main Scuttlebutt client (such as Patchwork) running, run `node example`, which should create a new bot who will request to replicate with your current feed.
+with your main Scuttlebutt client (such as Patchwork) running, run `node example hello`, which should create a new bot who will request to replicate with your current feed.
 
 if you @mention this new bot, it should respond with hello ${name}!
 

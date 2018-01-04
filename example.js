@@ -5,68 +5,18 @@ var createClient = require('ssb-client')
 var ssbConfig = require('ssb-config/inject')
 var ssbKeys = require('ssb-keys')
 
-console.log('STARTING SBOT')
-var Bot = require('./')
+var botName = process.argv[2]
 
-var bot = Bot({
-  name: 'hello',
-  version: '0.0.0',
-  flumeVersion: 1,
-  initBot: (sbot) => {
-    var { id } = sbot.whoami()
-    var hasMentionForBot = hasMentionFor(id)
+console.log('bot example:', botName)
 
-    return {
-      handleMessage,
-      handleAction
-    }
-
-    function handleMessage (state, message) {
-      if (hasMentionForBot(message)) {
-        return {
-          state,
-          action: {
-            type: 'hello',
-            id: message.value.author
-          }
-        }
-      }
-
-      return { state }
-    }
-
-    function handleAction (action, sbot, cb) {
-      var { type } = action
-      if (type === 'hello') {
-        var { id } = action
-        sbot.about.get((err, abouts) => {
-          if (err) return cb(err)
-          var name = abouts[id].name[id][0]
-          cb(null, {
-            type: 'post',
-            text: `hello [@${name}](${id})!`,
-            mentions: [
-              {
-                name,
-                link: id
-              }
-            ]
-          })
-        })
-      }
-      else cb()
-    }
-  }
-})
-
-function hasMentionFor (id) {
-  return (message) => {
-    var { value } = message
-    var { content } = value
-    var { mentions = [] } = content
-    return mentions.map(mention => mention.link).includes(id)
-  }
+if (!botName) {
+  console.log()
+  console.error('missing bot example name!')
+  console.error('see possible names in ./examples/')
+  process.exit(1)
 }
+
+var bot = require(`./examples/${botName}`)
 
 // ---
 // boilerplate
