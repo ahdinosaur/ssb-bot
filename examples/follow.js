@@ -15,30 +15,21 @@ module.exports = Bot({
         state = {}
       }
 
-      var { value } = message
-      var { author, content } = value
-      var { type, contact } = content
+      var { value: { author } } = message
 
-      var id
       if (state[author] == null) {
-        id = author
-      } else if (
-        type === 'contact' &&
-        state[contact] == null
-      ) {
-        id = contact
-      }
-
-      var action
-      if (id != null) {
-        state[id] = true
-        action = {
-          type: 'follow',
-          id
+        return {
+          state: Object.assign(state, {
+            [author]: true
+          }),
+          action: {
+            type: 'follow',
+            id: author
+          }
         }
       }
 
-      return { state, action }
+      return { state }
     }
 
     function handleAction (action, sbot, cb) {
