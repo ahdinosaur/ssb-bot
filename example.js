@@ -59,21 +59,37 @@ createClient(function (err, client) {
     console.log('uxer id:', uxerId)
     console.log('bot id:', botId)
 
-    // follow your own uxer id!
-    sbot.publish({
-      type: 'contact',
-      contact: uxerId,
-      following: true
-    }, err => {
-      if (err) throw err
-    })
+    var seenUxerFollow = false
 
     pull(
       sbot.createUserStream({
         id: botId,
         live: true
       }),
-      pull.log()
+      pull.drain(message => {
+        console.log(message)
+        if (message.sync === true) {
+          if (!seenUxerFollow) {
+            // follow your own uxer id!
+            //
+            sbot.publish({
+              type: 'contact',
+              contact: uxerId,
+              following: true
+            }, err => {
+              if (err) throw err
+            })
+          }
+          return
+        }
+        const { value: { content: { type, contact } } } = message
+        if (
+          type === 'contact' &&
+          contact === uxerId
+        ) {
+          seenUxerFollow = true
+        }
+      })
     )
   })
 })
