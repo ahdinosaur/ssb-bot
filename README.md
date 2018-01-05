@@ -101,11 +101,11 @@ var handleMessage = (state, message) => {
 
 ```js
 var handleAction = (action, sbot, callback) => {
-  var newMessage = {
+  var newMessageContent = {
     type: 'post',
     text: 'did i hear something?'
   }
-  callback(null, newMessage) // this publishes the newMessage
+  callback(null, newMessageContent) // this publishes the new message content
 }
 ```
 
